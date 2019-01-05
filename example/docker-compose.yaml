@@ -1,0 +1,24 @@
+version: '3'
+services:
+  flask:
+    build:
+      context: ./docker/flask
+    image: fsess/flask
+    volumes:
+      - ./docker/flask/app:/app
+  ddb:
+    image: cnadiminti/dynamodb-local
+    volumes:
+      - ./ddb:/dynamodb_local_db
+    environment:
+      - DYNAMODB_PORT=8989  
+    ports:
+      - 8989:8989
+  dbadmin:
+    build:
+      context: ./docker/ddbadmin
+    image: fsess/dbadmin
+    environment:
+      - DYNAMO_ENDPOINT=ddb:8989
+    ports:
+      - 8090:8001
