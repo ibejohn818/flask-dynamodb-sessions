@@ -11,7 +11,7 @@ services:
     volumes:
       - ./ddb:/dynamodb_local_db
     environment:
-      - DYNAMODB_PORT=8989  
+      - DYNAMODB_PORT=8989
     ports:
       - 8989:8989
   dbadmin:
