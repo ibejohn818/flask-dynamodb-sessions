@@ -20,7 +20,7 @@ PV3 = sys.version_info[0] == 3
 
 __author__ = """John Hardy"""
 __email__ = 'john@johnchardy.com'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 
 class Session(object):
