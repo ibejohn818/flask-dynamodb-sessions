@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 
-"""Top-level package for Flask DynamoDB Sessions."""
+"""
+Flask DynamoDB Sessions
+
+This module will use AWS DynamoDB as your session store in Flask.
+
+"""
 import sys
 import time
 from datetime import datetime
 from uuid import uuid4
-import boto3
-from flask import jsonify
 from flask.sessions import SessionInterface
 from flask.sessions import SessionMixin
 from werkzeug.datastructures import CallbackDict
 import json
+import boto3
 
 PV3 = sys.version_info[0] == 3
-
-if PV3:
-    import _pickle as pickler
-else:
-    import pickle as pickler
 
 __author__ = """John Hardy"""
 __email__ = 'john@johnchardy.com'
@@ -39,11 +38,13 @@ class Session(object):
         conf.setdefault("SESSION_DYNAMODB_ENDPOINT", None)
         conf.setdefault("SESSION_DYNAMODB_REGION", None)
         conf.setdefault("SESSION_DYNAMODB_TABLE", 'sessions')
+        conf.setdefault("SESSION_DYNAMODB_TTL_SECONDS", (86400 * 14))
 
         kw = {
             'table': conf['SESSION_DYNAMODB_TABLE'],
             'endpoint': conf['SESSION_DYNAMODB_ENDPOINT'],
             'region': conf['SESSION_DYNAMODB_REGION'],
+            'ttl': conf['SESSION_DYNAMODB_TTL_SECONDS'],
         }
 
         interface = DynamodbSessionInterface(**kw)
@@ -68,10 +69,11 @@ class DynamodbSessionInterface(SessionInterface):
     _boto_client = None
 
     def __init__(self, **kw):
-        self.table = kw.get('table', 'sessions')
+        self.table = kw.get('table', 'flask_sessions')
         self.permanent = kw.get('permanent', True)
         self.endpoint = kw.get('endpoint', None)
         self.region = kw.get('region', None)
+        self.ttl = kw.get('ttl', None)
 
     def open_session(self, app, req):
         """
@@ -94,7 +96,7 @@ class DynamodbSessionInterface(SessionInterface):
         if not session:
             if session.modified:
                 self.delete_session(session.sid)
-                response.delete_cookie(app.session_cookie_name,
+                res.delete_cookie(app.session_cookie_name,
                                        domain=domain, path=path)
             return
 
@@ -105,16 +107,17 @@ class DynamodbSessionInterface(SessionInterface):
         secure = self.get_cookie_secure(app)
         expires = self.get_expiration_time(app, session)
         session_id = session.sid
-        # val = pickler.dumps(dict(session))
-        val = json.dumps(dict(session))
-        json_encoder = app.json_encoder()
+
+        val = json.dumps(dict(session), default=str)
+
         self.dynamo_save(session_id, val)
         res.set_cookie(app.session_cookie_name, session_id,
                             expires=expires, httponly=httponly,
                             domain=domain, path=path, secure=secure)
 
-
     def dynamo_get(self, session_id):
+        """
+        """
         try:
             res = self.boto_client().get_item(TableName=self.table,
                         Key={'id':{'S': session_id}})
@@ -126,14 +129,18 @@ class DynamodbSessionInterface(SessionInterface):
 
         return None
 
-
-    def dynamo_save(self, session_id, pickled):
+    def dynamo_save(self, session_id, json_str):
         try:
             self.boto_client().update_item(TableName=self.table,
                         Key={'id':{'S':session_id}},
-                        ExpressionAttributeNames={'#pf_data': 'data', '#pf_modified': 'modified'},
-                        ExpressionAttributeValues={':data': {'S':pickled}, ':modified': {'S':str(datetime.utcnow())}},
-                        UpdateExpression="SET #pf_data = :data, #pf_modified = :modified",
+                        ExpressionAttributeNames={'#pf_data': 'data',
+                                                  '#pf_modified': 'modified',
+                                                  '#pf_ttl': 'ttl'},
+                        ExpressionAttributeValues={':data': {'S':json_str},
+                                                   ':modified': {'S':str(datetime.utcnow())},
+                                                   ':ttl': {'N': str(int(datetime.utcnow().timestamp() + self.ttl))},
+                                                   },
+                        UpdateExpression="SET #pf_data = :data, #pf_modified = :modified, #pf_ttl = :ttl",
                         ReturnValues='NONE')
         except Exception as e:
             print("DYNAMO SESSION SAVE ERR: ", str(e))
@@ -146,13 +153,16 @@ class DynamodbSessionInterface(SessionInterface):
             print("DYNAMO SESSION DELETE ERR: ", str(e))
 
     def boto_client(self):
+        """
+        """
         if self._boto_client is None:
             kw = {}
+
             if self.endpoint is not None:
                 kw['endpoint_url'] = self.endpoint
             if self.region is not None:
                 kw['region_name'] = self.region
-            print(kw)
+
             self._boto_client = boto3.client('dynamodb', **kw)
 
         return self._boto_client
