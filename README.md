@@ -64,6 +64,13 @@ The table structure is faily simple.
 
 }
 ```
+
+Create the table VIA `aws` cli.
+
+```
+aws dynamodb create-table --key-schema "AttributeName=id,KeyType=HASH" --attribute-definitions "AttributeName=id,AttributeType=S" --provisioned-throughput "ReadCapacityUnits=5,WriteCapacityUnits=5" --table-name flask_sessions
+```
+
 You can find table creation scripts in the `utils/dynamo` directory.
 
 The `ttl` column is present to take advantage of DynamoDB's `Lifecycle` feature where dynamo will delete all rows with a ttl in the past.

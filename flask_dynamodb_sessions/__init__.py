@@ -25,8 +25,9 @@ __version__ = '0.1.2'
 
 class Session(object):
 
-    def __init__(self, app=None):
+    def __init__(self, app=None, **kw):
         self.app = app
+        self.permanent = kw.get('permanent', True)
 
         if self.app is not None:
             self.init(self.app)
@@ -37,7 +38,7 @@ class Session(object):
 
         conf.setdefault("SESSION_DYNAMODB_ENDPOINT", None)
         conf.setdefault("SESSION_DYNAMODB_REGION", None)
-        conf.setdefault("SESSION_DYNAMODB_TABLE", 'sessions')
+        conf.setdefault("SESSION_DYNAMODB_TABLE", 'flask_sessions')
         conf.setdefault("SESSION_DYNAMODB_TTL_SECONDS", (86400 * 14))
 
         kw = {
@@ -45,6 +46,7 @@ class Session(object):
             'endpoint': conf['SESSION_DYNAMODB_ENDPOINT'],
             'region': conf['SESSION_DYNAMODB_REGION'],
             'ttl': conf['SESSION_DYNAMODB_TTL_SECONDS'],
+            'permanent': self.permanent,
         }
 
         interface = DynamodbSessionInterface(**kw)
