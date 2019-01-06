@@ -12,6 +12,12 @@ Being a SaaS service we no longer have to manage servers/storage/etc and take ad
 - Encryption at rest
 - etc...
 
+Sessions are pickled and base64 encoded to be stored in DynamoDB as strings. As a result you may save
+objects to your sessions as long as the object supports the pickle interface.
+
+DynamoDB supports a maximum object size of 400 KB. Minus the UUID4 session id, modified date/time string and ttl timestamp
+you have approximately 398 KB available for your session.
+
 ## Installation
 
 ```shell
@@ -42,8 +48,6 @@ def index_get():
 ```
 *View examples directory for more*
 
-The session dictionary is serialized using `json.dumps({SESSION}, default=str)`. More advanced serialization is in-progress.
-
 ### Configuration Options
 Below are additional `SESSION_*` configuration options specific to DynamoDB sessions.
 
@@ -51,7 +55,8 @@ Below are additional `SESSION_*` configuration options specific to DynamoDB sess
     SESSION_DYNAMODB_ENDPOINT (string): Override the boto3 endpoint, good for local development and using dynamodb-local. Default: None
     SESSION_DYNAMODB_TTL_SECONDS (int): Number of seconds to add to the TTL column. Default: 86400 * 14 (14 Days)
 
-The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
+The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST 
+is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
 
 ### Table Structure
 The table structure is fairly simple.
@@ -85,6 +90,5 @@ aws dynamodb update-time-to-live --time-to-live-specification 'Enabled=true,Attr
 
 
 ## TODO
-- Advanced serialization of session (IE: Pickling )
 - Test coverage
 - More laxed cookie refresh

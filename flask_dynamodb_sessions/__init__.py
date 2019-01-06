@@ -18,6 +18,9 @@ import boto3
 
 PV3 = sys.version_info[0] == 3
 
+import pickle
+import codecs
+
 __author__ = """John Hardy"""
 __email__ = 'john@johnchardy.com'
 __version__ = '0.1.3'
@@ -88,6 +91,9 @@ class DynamodbSessionInterface(SessionInterface):
 
         data = self.dynamo_get(id)
 
+        if data is not None:
+            data = self.hydrate_session(data)
+
         return DynamodbSession(data, sid=id, permanent=self.permanent)
 
     def save_session(self, app, session, res):
@@ -110,12 +116,32 @@ class DynamodbSessionInterface(SessionInterface):
         expires = self.get_expiration_time(app, session)
         session_id = session.sid
 
-        val = json.dumps(dict(session), default=str)
+        self.dynamo_save(session_id, dict(session))
 
-        self.dynamo_save(session_id, val)
         res.set_cookie(app.session_cookie_name, session_id,
                             expires=expires, httponly=httponly,
                             domain=domain, path=path, secure=secure)
+
+
+
+    def pickle_session(self, session):
+        """Pickle the session object and base64 encode it
+            for storage as a dynamo string
+        """
+        pickled = pickle.dumps(session)
+
+        canned = codecs.encode(pickled, 'base64').decode()
+
+        return canned
+
+    def hydrate_session(self, session_data):
+        """Base64 decode string back to bytes and unpickle
+        """
+        uncanned = codecs.decode(session_data.encode(), 'base64')
+
+        pickled = pickle.loads(uncanned)
+
+        return pickled
 
     def dynamo_get(self, session_id):
         """
@@ -125,24 +151,36 @@ class DynamodbSessionInterface(SessionInterface):
                         Key={'id':{'S': session_id}})
             if res.get('Item').get('data'):
                 data = res.get('Item').get('data')
-                return json.loads(data.get('S', '{}'))
+                return data.get('S', '{}')
         except Exception as e:
             print("DYNAMO SESSION GET ITEM ERR: ", str(e))
 
         return None
 
-    def dynamo_save(self, session_id, json_str):
+    def dynamo_save(self, session_id, session):
         try:
+            print(session)
+            fields = {
+                'data': {'S': self.pickle_session(session)},
+                'modified': {'S': str(datetime.utcnow())},
+                'ttl': {'N': str(int(datetime.utcnow().timestamp() + self.ttl))}
+            }
+
+            attr_names = {}
+            attr_vals = {}
+            ud_exp = []
+            for k, v in fields.items():
+                attr = "#attr_{}".format(k)
+                token = ":{}".format(k)
+                ud_exp.append("{} = {}".format(attr, token))
+                attr_vals[token] = v
+                attr_names[attr] = k
+
             self.boto_client().update_item(TableName=self.table,
                         Key={'id':{'S':session_id}},
-                        ExpressionAttributeNames={'#pf_data': 'data',
-                                                  '#pf_modified': 'modified',
-                                                  '#pf_ttl': 'ttl'},
-                        ExpressionAttributeValues={':data': {'S':json_str},
-                                                   ':modified': {'S':str(datetime.utcnow())},
-                                                   ':ttl': {'N': str(int(datetime.utcnow().timestamp() + self.ttl))},
-                                                   },
-                        UpdateExpression="SET #pf_data = :data, #pf_modified = :modified, #pf_ttl = :ttl",
+                        ExpressionAttributeNames=attr_names,
+                        ExpressionAttributeValues=attr_vals,
+                        UpdateExpression="SET {}".format(", ".join(ud_exp)),
                         ReturnValues='NONE')
         except Exception as e:
             print("DYNAMO SESSION SAVE ERR: ", str(e))
