@@ -54,7 +54,7 @@ Below are additional `SESSION_*` configuration options specific to DynamoDB sess
 The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
 
 ### Table Structure
-The table structure is faily simple.
+The table structure is fairly simple.
 ```
 {
     id: string HASH,
@@ -68,12 +68,20 @@ The table structure is faily simple.
 Create the table VIA `aws` cli.
 
 ```
-aws dynamodb create-table --key-schema "AttributeName=id,KeyType=HASH" --attribute-definitions "AttributeName=id,AttributeType=S" --provisioned-throughput "ReadCapacityUnits=5,WriteCapacityUnits=5" --table-name flask_sessions
+aws dynamodb create-table --key-schema "AttributeName=id,KeyType=HASH" \
+--attribute-definitions "AttributeName=id,AttributeType=S" \
+--provisioned-throughput "ReadCapacityUnits=5,WriteCapacityUnits=5" \
+--table-name flask_sessions
 ```
 
-You can find table creation scripts in the `utils/dynamo` directory.
-
 The `ttl` column is present to take advantage of DynamoDB's `Lifecycle` feature where dynamo will delete all rows with a ttl in the past.
+
+Enable time-to-live (garbage collection)
+
+```
+aws dynamodb update-time-to-live --time-to-live-specification 'Enabled=true,AttributeName=ttl' --table-name flask_sessions
+```
+
 
 
 ## TODO
