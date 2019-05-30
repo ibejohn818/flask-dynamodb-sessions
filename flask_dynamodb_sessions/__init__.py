@@ -43,6 +43,8 @@ class Session(object):
         conf.setdefault("SESSION_DYNAMODB_REGION", None)
         conf.setdefault("SESSION_DYNAMODB_TABLE", 'flask_sessions')
         conf.setdefault("SESSION_DYNAMODB_TTL_SECONDS", (86400 * 14))
+        conf.setdefault("SESSION_DYNAMODB_USE_HEADER", False)
+        conf.setdefault("SESSION_DYNAMODB_HEADER_NAME", 'X-SessionId')
 
         kw = {
             'table': conf['SESSION_DYNAMODB_TABLE'],
@@ -50,6 +52,8 @@ class Session(object):
             'region': conf['SESSION_DYNAMODB_REGION'],
             'ttl': conf['SESSION_DYNAMODB_TTL_SECONDS'],
             'permanent': self.permanent,
+            'use_header': conf['SESSION_DYNAMODB_USE_HEADER'],
+            'header_name': conf['SESSION_DYNAMODB_HEADER_NAME'],
         }
 
         interface = DynamodbSessionInterface(**kw)
@@ -79,12 +83,17 @@ class DynamodbSessionInterface(SessionInterface):
         self.endpoint = kw.get('endpoint', None)
         self.region = kw.get('region', None)
         self.ttl = kw.get('ttl', None)
+        self.use_header = kw.get('use_header', None)
+        self.header_name = kw.get('header_name', None)
 
     def open_session(self, app, req):
         """
         """
-        id = req.cookies.get(app.session_cookie_name)
-
+        if self.use_header:
+            id = req.headers.get(self.header_name)
+        else:
+            id = req.cookies.get(app.session_cookie_name)
+        
         if id is None:
             id = str(uuid4())
             return DynamodbSession(sid=id, permanent=self.permanent)
@@ -118,9 +127,12 @@ class DynamodbSessionInterface(SessionInterface):
 
         self.dynamo_save(session_id, dict(session))
 
-        res.set_cookie(app.session_cookie_name, session_id,
-                            expires=expires, httponly=httponly,
-                            domain=domain, path=path, secure=secure)
+        if self.use_header:
+            res.headers[self.header_name] = session_id
+        else:
+            res.set_cookie(app.session_cookie_name, session_id,
+                                expires=expires, httponly=httponly,
+                                domain=domain, path=path, secure=secure)
 
 
 

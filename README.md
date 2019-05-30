@@ -58,6 +58,14 @@ Below are additional `SESSION_*` configuration options specific to DynamoDB sess
 The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST 
 is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
 
+### Transmission of ID via Header
+Using cookies to store the session ID may not work in some environments, so a normal HTTP header may be used to pass the ID in requests and responses. 
+
+There are two settings to control this:
+
+    SESSION_DYNAMODB_USE_HEADER (bool): Whether or not to use a header for the ID, instead of cookies. Default: False
+    SESSION_DYNAMODB_HEADER_NAME (string): The name of the header to use for the ID. Default: X-SessionId
+
 ### Table Structure
 The table structure is fairly simple.
 ```
