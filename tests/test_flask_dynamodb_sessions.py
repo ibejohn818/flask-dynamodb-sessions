@@ -73,3 +73,36 @@ def test_read_uses_header(mocker):
         actual_session_id = match.group(1)
 
     assert actual_session_id == expected_session_id
+
+
+def test_consistent_read_default_false(mocker):
+    boto_mock = mocker.patch('flask_dynamodb_sessions.boto3.client')
+    boto_mock_instance = boto_mock()
+    boto_mock_instance.get_item.return_value = {'Item': {'data': ''}}
+
+    app = create_test_app(
+        SESSION_DYNAMODB_USE_HEADER=True
+    )
+    mocker.spy(boto_mock, 'get_item')
+
+    response = app.test_client().get('/test_route', headers={'X-SessionId': 'foo'})
+
+    # Validate ConsistentRead setting
+    assert 'ConsistentRead=False' in str(boto_mock_instance.get_item.call_args)
+
+
+def test_consistent_read_true(mocker):
+    boto_mock = mocker.patch('flask_dynamodb_sessions.boto3.client')
+    boto_mock_instance = boto_mock()
+    boto_mock_instance.get_item.return_value = {'Item': {'data': ''}}
+
+    app = create_test_app(
+        SESSION_DYNAMODB_USE_HEADER=True,
+        SESSION_DYNAMODB_CONSISTENT_READ=True
+    )
+    mocker.spy(boto_mock, 'get_item')
+
+    response = app.test_client().get('/test_route', headers={'X-SessionId': 'foo'})
+
+    # Validate ConsistentRead setting
+    assert 'ConsistentRead=True' in str(boto_mock_instance.get_item.call_args)
