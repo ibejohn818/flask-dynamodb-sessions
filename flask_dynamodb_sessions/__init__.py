@@ -23,7 +23,7 @@ import codecs
 
 __author__ = """John Hardy"""
 __email__ = 'john@johnchardy.com'
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 
 class Session(object):
