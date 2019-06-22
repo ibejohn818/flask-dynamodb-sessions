@@ -43,6 +43,9 @@ class Session(object):
         conf.setdefault("SESSION_DYNAMODB_REGION", None)
         conf.setdefault("SESSION_DYNAMODB_TABLE", 'flask_sessions')
         conf.setdefault("SESSION_DYNAMODB_TTL_SECONDS", (86400 * 14))
+        conf.setdefault("SESSION_DYNAMODB_USE_HEADER", False)
+        conf.setdefault("SESSION_DYNAMODB_HEADER_NAME", 'X-SessionId')
+        conf.setdefault("SESSION_DYNAMODB_CONSISTENT_READ", False)
 
         kw = {
             'table': conf['SESSION_DYNAMODB_TABLE'],
@@ -50,6 +53,9 @@ class Session(object):
             'region': conf['SESSION_DYNAMODB_REGION'],
             'ttl': conf['SESSION_DYNAMODB_TTL_SECONDS'],
             'permanent': self.permanent,
+            'use_header': conf['SESSION_DYNAMODB_USE_HEADER'],
+            'header_name': conf['SESSION_DYNAMODB_HEADER_NAME'],
+            'consistent_read': conf['SESSION_DYNAMODB_CONSISTENT_READ']
         }
 
         interface = DynamodbSessionInterface(**kw)
@@ -79,12 +85,18 @@ class DynamodbSessionInterface(SessionInterface):
         self.endpoint = kw.get('endpoint', None)
         self.region = kw.get('region', None)
         self.ttl = kw.get('ttl', None)
+        self.use_header = kw.get('use_header', False)
+        self.header_name = kw.get('header_name', None)
+        self.consistent_read =  bool(kw.get('consistent_read', False))
 
     def open_session(self, app, req):
         """
         """
-        id = req.cookies.get(app.session_cookie_name)
-
+        if self.use_header:
+            id = req.headers.get(self.header_name)
+        else:
+            id = req.cookies.get(app.session_cookie_name)
+        
         if id is None:
             id = str(uuid4())
             return DynamodbSession(sid=id, permanent=self.permanent)
@@ -95,6 +107,7 @@ class DynamodbSessionInterface(SessionInterface):
             data = self.hydrate_session(data)
 
         return DynamodbSession(data, sid=id, permanent=self.permanent)
+
 
     def save_session(self, app, session, res):
         """
@@ -118,9 +131,12 @@ class DynamodbSessionInterface(SessionInterface):
 
         self.dynamo_save(session_id, dict(session))
 
-        res.set_cookie(app.session_cookie_name, session_id,
-                            expires=expires, httponly=httponly,
-                            domain=domain, path=path, secure=secure)
+        if self.use_header:
+            res.headers[self.header_name] = session_id
+        else:
+            res.set_cookie(app.session_cookie_name, session_id,
+                                expires=expires, httponly=httponly,
+                                domain=domain, path=path, secure=secure)
 
 
 
@@ -148,7 +164,8 @@ class DynamodbSessionInterface(SessionInterface):
         """
         try:
             res = self.boto_client().get_item(TableName=self.table,
-                        Key={'id':{'S': session_id}})
+                        Key={'id':{'S': session_id}},
+                        ConsistentRead=self.consistent_read)
             if res.get('Item').get('data'):
                 data = res.get('Item').get('data')
                 return data.get('S', '{}')
