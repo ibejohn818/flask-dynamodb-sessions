@@ -176,7 +176,7 @@ class DynamodbSessionInterface(SessionInterface):
 
     def dynamo_save(self, session_id, session):
         try:
-            print(session)
+            # print(session)
             fields = {
                 'data': {'S': self.pickle_session(session)},
                 'modified': {'S': str(datetime.utcnow())},
