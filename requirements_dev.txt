@@ -11,5 +11,5 @@ flask
 boto3
 
 pytest==3.8.2
-pytest-mock
+pytest-mock==1.12.1
 pytest-runner==4.2
