@@ -1,6 +1,6 @@
 # Flask DynamoDB Sessions
 
-[![](https://img.shields.io/pypi/v/flask-dynamodb-sessions.svg)](https://pypi.org/project/flask-dynamodb-sessions/) [![Updates](https://pyup.io/repos/github/ibejohn818/flask-dynamodb-sessions/shield.svg)](https://pyup.io/repos/github/ibejohn818/flask-dynamodb-sessions/)
+[![](https://img.shields.io/pypi/v/flask-dynamodb-sessions.svg)](https://pypi.org/project/flask-dynamodb-sessions/) [![Updates](https://pyup.io/repos/github/ibejohn818/flask-dynamodb-sessions/shield.svg)](https://pyup.io/repos/github/ibejohn818/flask-dynamodb-sessions/) [![codecov](https://codecov.io/gh/ibejohn818/flask-dynamodb-sessions/branch/master/graph/badge.svg)](https://codecov.io/gh/ibejohn818/flask-dynamodb-sessions)
 
 Server-side sessions in Flask using AWS DynamoDB as the backend data store.
 
