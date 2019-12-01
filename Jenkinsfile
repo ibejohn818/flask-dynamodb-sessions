@@ -38,7 +38,7 @@ node {
 
         if (env.TAG_NAME && currentBuild.result == "SUCCESS") {
             stage("Publish To PyPi") {
-                pypi(env.WORKSPACE, "flask-dynamodb-session", img_tag)
+                pypi(env.WORKSPACE, "flask-dynamodb-sessions", img_tag)
             }
         }
 
