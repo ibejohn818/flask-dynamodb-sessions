@@ -1,0 +1,7 @@
+FROM python:3.7
+
+RUN useradd jhardy
+
+COPY requirements_dev.txt /
+
+RUN pip3 install -r /requirements_dev.txt
