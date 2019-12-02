@@ -75,8 +75,26 @@ class DynamodbSession(CallbackDict, SessionMixin):
 
 
 class DynamodbSessionInterface(SessionInterface):
-    """
-    """
+    """ Flask session interface to AWS DynamoDB.
+
+        Session dict is pickled to enable saving
+        of objects in the session. TTL is saved
+        as a UTC timestamp to allow Dynamo expiration.
+
+        NOTE:
+            If using dynamo endpoint for local dev or alternate API
+            don't forget to set the scheme (IE: http(s)://)
+
+    Keyword Args:
+        table (str): The dynamo table to save session to. (Default: flask_sessions)
+        permanent (bool): Flask Session permanent property. (Default: True)
+        endpoint (str): The boto3 endpoint to use for dynamo api calls. (Default: None)
+        region (str): The AWS region for boto3 client. (Default: None)
+        ttl (int): TTL in seconds to add to current time. (Default: +14 days)
+        use_header (bool): Whether to pass session id in header. (Default: False)
+        header_name (str): Header name to grab session id from if use_header=True. (Default: None)
+        consistent_read (bool): Whether to use dynamodb consistent read in session queries. (Default: False)
+    """  # noqa
     _boto_client = None
 
     def __init__(self, **kw):

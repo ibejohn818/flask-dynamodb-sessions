@@ -1,9 +1,13 @@
 import pytest
 import re
+from mock import call
 from pytest_mock import mocker
 import flask
 import flask.sessions
-from flask_dynamodb_sessions import Session
+from flask_dynamodb_sessions import (
+    DynamodbSessionInterface,
+    Session
+)
 
 
 def test_session_boto_settings(mocker):
@@ -106,3 +110,104 @@ def test_consistent_read_true(mocker):
 
     # Validate ConsistentRead setting
     assert 'ConsistentRead=True' in str(boto_mock_instance.get_item.call_args)
+
+
+class TestDynamodbSessionInterface:
+    """ Test DynamodbSessionInterface class
+    """
+
+    def test_open_session_use_header(self, mocker):
+        """ Test open_session method using
+            use_header setting. We should
+            exercise a dynamo_get and hydrate
+            data. A session should be returned
+            with hydrated data and header value
+            as sid.
+        """
+        req_mock = mocker.MagicMock(flask.wrappers.Request)
+        app_mock = mocker.MagicMock(flask.Flask)
+        ddb_sess_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSession')
+        ddb_get_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSessionInterface.dynamo_get')
+        hydrate_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSessionInterface.hydrate_session')
+
+        req_mock.headers.get.return_value = 'mock-header'
+        ddb_get_patch.return_value = {'key': 'mock-sess-data'}
+        hydrate_patch.return_value = {'key': 'mock-hydrate-data'}
+
+
+        dbi = DynamodbSessionInterface(use_header=True)
+
+        _ = dbi.open_session(app_mock, req_mock)
+
+        # dynamo_get should be called with our mock header data
+        assert ddb_get_patch.mock_calls == \
+            [call('mock-header')]
+
+        # hydrate_session should be called with mock get data
+        assert hydrate_patch.mock_calls == \
+            [call({'key': 'mock-sess-data'})]
+
+        # our dynamo session patch should be called
+        # with our mock hydrate data and mock header
+        assert ddb_sess_patch.mock_calls == \
+            [call({'key': 'mock-hydrate-data'},
+                  permanent=True,
+                  sid='mock-header')]
+
+    def test_open_session_use_cookie(self, mocker):
+        """ Test open_session method using
+            default cookie settings. A session
+            should be created with the cookie
+            data as sid and we will return no
+            session data from dynamo_get.
+        """
+        req_mock = mocker.MagicMock(flask.wrappers.Request)
+        app_mock = mocker.MagicMock(flask.Flask)
+        ddb_sess_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSession')
+        ddb_get_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSessionInterface.dynamo_get')
+        hydrate_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSessionInterface.hydrate_session')
+
+        req_mock.cookies.get.return_value = 'mock-cookie'
+        ddb_get_patch.return_value = None
+
+        dbi = DynamodbSessionInterface()
+
+        _ = dbi.open_session(app_mock, req_mock)
+
+        # dynamo_get patch should be called with
+        # mock cookie data
+        assert ddb_get_patch.mock_calls == \
+            [call('mock-cookie')]
+
+        # hydrate should not have been called
+        assert hydrate_patch.call_count == 0
+
+        # check dynamo session mock calls
+        assert ddb_sess_patch.mock_calls == \
+            [call(None, permanent=True, sid='mock-cookie')]
+
+
+    def test_open_session_new_session(self, mocker):
+        """ Test open_session method with
+            defaults. Should return a fresh
+            session and exec uuid4()
+        """
+        req_mock = mocker.MagicMock(flask.wrappers.Request)
+        app_mock = mocker.MagicMock(flask.Flask)
+        ddb_sess_patch = mocker.patch('flask_dynamodb_sessions.DynamodbSession')
+        uuid_patch = mocker.patch('flask_dynamodb_sessions.uuid4')
+
+        # new session value that should be used
+        uuid_patch.return_value = 'mock-uuid'
+
+        # have cookie return none like a fresh session
+        req_mock.cookies.get.return_value = None
+
+        dbi = DynamodbSessionInterface()
+
+        _  = dbi.open_session(app_mock, req_mock)
+
+        # check dynamo session calls
+        assert ddb_sess_patch.mock_calls == \
+            [call(permanent=True, sid='mock-uuid')]
+
