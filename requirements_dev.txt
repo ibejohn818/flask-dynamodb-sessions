@@ -13,4 +13,4 @@ boto3
 pytest==3.8.2
 pytest-mock==1.12.1
 pytest-runner==4.2
-pytest_cov==2.8.1
+pytest_cov==2.11.0
