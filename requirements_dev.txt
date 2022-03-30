@@ -7,7 +7,7 @@ tox==3.5.2
 coverage==4.5.1
 Sphinx==1.8.1
 twine==1.12.1
-flask
+flask==2.1.1
 boto3
 
 pytest==3.8.2
