@@ -57,7 +57,7 @@ Below are additional `SESSION_*` configuration options specific to DynamoDB sess
     SESSION_DYNAMODB_CONSISTENT_READ (bool): Whether or not to perform a strongly consistent read from DynamoDB. Default: False
 
 The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST 
-is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
+is the only setting that is negated and each request will refresh the cookie (Might be modified in a future release).
 
 ### Transmission of ID via Header
 Using cookies to store the session ID may not work in some environments, so a normal HTTP header may be used to pass the ID in requests and responses. 
