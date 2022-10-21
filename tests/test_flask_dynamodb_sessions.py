@@ -18,6 +18,20 @@ def test_session_boto_settings(mocker):
     )
 
 
+def test_session_boto_credentials(mocker):
+
+    client_mock = mocker.patch('flask_dynamodb_sessions.boto3.client')
+
+    app = flask.Flask(__name__)
+
+    app.config.update(
+        SESSION_DYNAMODB_REGION='bogus-region',
+        SESSION_DYNAMODB_ENDPOINT='http://bogus:1234',
+        SESSION_DYNAMODB_ACCESS_KEY_ID='test-key',
+        SESSION_DYNAMODB_SECRET_ACCESS_KEY='test-secret'
+    )
+
+
 def create_test_app(**kwargs):
     app = flask.Flask(__name__)
     app.config.update(**kwargs)
