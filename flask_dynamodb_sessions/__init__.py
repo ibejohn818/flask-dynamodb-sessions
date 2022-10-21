@@ -46,6 +46,8 @@ class Session(object):
         conf.setdefault("SESSION_DYNAMODB_USE_HEADER", False)
         conf.setdefault("SESSION_DYNAMODB_HEADER_NAME", 'X-SessionId')
         conf.setdefault("SESSION_DYNAMODB_CONSISTENT_READ", False)
+        conf.setdefault("SESSION_DYNAMODB_ACCESS_KEY_ID", None)
+        conf.setdefault("SESSION_DYNAMODB_SECRET_ACCESS_KEY", None)
 
         kw = {
             'table': conf['SESSION_DYNAMODB_TABLE'],
@@ -55,7 +57,9 @@ class Session(object):
             'permanent': self.permanent,
             'use_header': conf['SESSION_DYNAMODB_USE_HEADER'],
             'header_name': conf['SESSION_DYNAMODB_HEADER_NAME'],
-            'consistent_read': conf['SESSION_DYNAMODB_CONSISTENT_READ']
+            'consistent_read': conf['SESSION_DYNAMODB_CONSISTENT_READ'],
+            'aws_access_key_id': conf['SESSION_DYNAMODB_ACCESS_KEY_ID'],
+            'aws_secret_access_key': conf['SESSION_DYNAMODB_SECRET_ACCESS_KEY']
         }
 
         interface = DynamodbSessionInterface(**kw)
@@ -88,6 +92,8 @@ class DynamodbSessionInterface(SessionInterface):
         self.use_header = kw.get('use_header', False)
         self.header_name = kw.get('header_name', None)
         self.consistent_read =  bool(kw.get('consistent_read', False))
+        self.aws_access_key_id =  kw.get('aws_access_key_id', None)
+        self.aws_secret_access_key =  kw.get('aws_secret_access_key', None)
 
     def open_session(self, app, req):
         """
@@ -96,7 +102,7 @@ class DynamodbSessionInterface(SessionInterface):
             id = req.headers.get(self.header_name)
         else:
             id = req.cookies.get(app.session_cookie_name)
-        
+
         if id is None:
             id = str(uuid4())
             return DynamodbSession(sid=id, permanent=self.permanent)
@@ -219,6 +225,10 @@ class DynamodbSessionInterface(SessionInterface):
                 kw['endpoint_url'] = self.endpoint
             if self.region is not None:
                 kw['region_name'] = self.region
+            if self.aws_access_key_id is not None:
+                kw['aws_access_key_id'] = self.aws_access_key_id
+            if self.aws_secret_access_key is not None:
+                kw['aws_secret_access_key'] = self.aws_secret_access_key
 
             self._boto_client = boto3.client('dynamodb', **kw)
 

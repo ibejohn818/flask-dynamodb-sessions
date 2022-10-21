@@ -4,7 +4,7 @@
 
 Server-side sessions in Flask using AWS DynamoDB as the backend data store.
 
-DynamoDB is AWS's SaaS NoSQL solution which makes it perfect for use as a session store. 
+DynamoDB is AWS's SaaS NoSQL solution which makes it perfect for use as a session store.
 Being a SaaS service we no longer have to manage servers/storage/etc and take advantage of some notable features such as:
 
 - Auto-scaling
@@ -41,9 +41,9 @@ Session(app)
 def index_get():
 	# use sessions just as you normally would
 	session['user'] = {'username': 'jhardy'}
-	
+
 	user = session.get('user')
-	
+
 	session_id = session.sid
 ```
 *View examples directory for more*
@@ -55,12 +55,14 @@ Below are additional `SESSION_*` configuration options specific to DynamoDB sess
     SESSION_DYNAMODB_ENDPOINT (string): Override the boto3 endpoint, good for local development and using dynamodb-local. Default: None
     SESSION_DYNAMODB_TTL_SECONDS (int): Number of seconds to add to the TTL column. Default: 86400 * 14 (14 Days)
     SESSION_DYNAMODB_CONSISTENT_READ (bool): Whether or not to perform a strongly consistent read from DynamoDB. Default: False
+    SESSION_DYNAMODB_ACCESS_KEY_ID (string): AWS Credentials for programmatic access to clients. Default: None
+    SESSION_DYNAMODB_SECRET_ACCESS_KEY (string): AWS Credentials for programmatic access to clients. Default: None
 
-The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST 
+The existing `SESSION_*` config parameters still apply (IE: cookie settings). SESSION_REFRESH_EACH_REQUEST
 is the only setting that is negated and each request will refesh the cookie (Might be modified in a future release).
 
 ### Transmission of ID via Header
-Using cookies to store the session ID may not work in some environments, so a normal HTTP header may be used to pass the ID in requests and responses. 
+Using cookies to store the session ID may not work in some environments, so a normal HTTP header may be used to pass the ID in requests and responses.
 
 There are two settings to control this:
 
