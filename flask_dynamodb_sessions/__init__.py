@@ -95,7 +95,7 @@ class DynamodbSessionInterface(SessionInterface):
         if self.use_header:
             id = req.headers.get(self.header_name)
         else:
-            id = req.cookies.get(app.session_cookie_name)
+            id = req.cookies.get(app.config["SESSION_COOKIE_NAME"])
         
         if id is None:
             id = str(uuid4())
@@ -117,7 +117,7 @@ class DynamodbSessionInterface(SessionInterface):
         if not session:
             if session.modified:
                 self.delete_session(session.sid)
-                res.delete_cookie(app.session_cookie_name,
+                res.delete_cookie(app.config["SESSION_COOKIE_NAME"],
                                        domain=domain, path=path)
             return
 
@@ -134,7 +134,7 @@ class DynamodbSessionInterface(SessionInterface):
         if self.use_header:
             res.headers[self.header_name] = session_id
         else:
-            res.set_cookie(app.session_cookie_name, session_id,
+            res.set_cookie(app.config["SESSION_COOKIE_NAME"], session_id,
                                 expires=expires, httponly=httponly,
                                 domain=domain, path=path, secure=secure)
 
